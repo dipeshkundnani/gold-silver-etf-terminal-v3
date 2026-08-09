@@ -1892,7 +1892,7 @@ def make_snapshot(
 # SAVE TODAY
 # ============================================================
 
-def storage_saved = persist_today(
+storage_saved = persist_today(
     quotes,
     gold_score,
     silver_score,
