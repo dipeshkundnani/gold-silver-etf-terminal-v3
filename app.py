@@ -3042,8 +3042,8 @@ def create_price_chart(
 
         fig.update_layout(
             template="plotly_dark",
-            paper_bgcolor="#0b0f14",
-            plot_bgcolor="#0b0f14",
+            paper_bgcolor="#1f2223,
+            plot_bgcolor="#1f2223",
             font=dict(
                 color="#e2e8f0"
             ),
