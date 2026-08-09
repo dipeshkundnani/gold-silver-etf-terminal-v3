@@ -3498,18 +3498,6 @@ st.caption(
 )
 
 # ============================================================
-# FOOTER
-# ============================================================
-
-st.divider()
-
-st.caption(
-    f"Updated "
-    f"{now_ist().strftime('%Y-%m-%d %H:%M:%S IST')} "
-    "• Decision-support only; not investment advice."
-)
-
-# ============================================================
 # 12. COPYRIGHT & DISCLAIMER
 # ============================================================
 
@@ -3525,16 +3513,33 @@ st.markdown(
         line-height: 1.6;
     ">
         <strong>"Gold & Silver ETF Decision Terminal V3"</strong><br>
+        Developed for educational and analytical purposes.<br>
         <strong>Creator & Owner: Dipesh Kundnani</strong><br>
         <strong>© 2026 All Rights Reserved by Dipesh Kundnani</strong><br>
-        Developed for educational and analytical purposes.<br>
-        Market data and news are provided by their respective third-party sources.
+        
+    """,
+    unsafe_allow_html=True,
+)
+
+st.divider()
+
+st.markdown(
+    """
+    <div style="
+        text-align: center;
+        padding: 20px 10px;
+        color: #9ca3af;
+        font-size: 13px;
+        line-height: 1.6;
+    ">
+        <strong>Note:</strong>
+        Market data and news are provided by their respective third-party sources.<br>
         This application is not affiliated with or endorsed by Yahoo Finance,
         NewsAPI, FRED, BLS, the U.S. Treasury, or any other data provider.<br>
         <br>
         <strong>Disclaimer:</strong>
         This terminal is for information and decision-support purposes only.
-        It does not constitute investment, financial, or trading advice.
+        It does not constitute investment, financial, or trading advice.<br>
         Always conduct your own research before making investment decisions.
     </div>
     """,
