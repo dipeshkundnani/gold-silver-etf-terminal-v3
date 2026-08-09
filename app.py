@@ -1948,7 +1948,7 @@ storage_saved = persist_today(
             TODAY_STR,
             payload,
         )
-)
+
         return True
 
     except (OSError, FileNotFoundError, PermissionError) as exc:
@@ -1960,7 +1960,7 @@ storage_saved = persist_today(
         # Prevent a storage problem from stopping the dashboard.
         return False
 
-
+)
 # ============================================================
 # YESTERDAY
 # ============================================================
