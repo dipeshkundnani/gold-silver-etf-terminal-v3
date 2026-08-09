@@ -65,6 +65,142 @@ st.set_page_config(
     layout="wide",
 )
 
+# ============================================================
+# DARK TERMINAL THEME
+# ============================================================
+
+st.markdown(
+    """
+    <style>
+
+    /* Main application background */
+    .stApp {
+        background-color: #0b0f14;
+        color: #f1f5f9;
+    }
+
+    /* Main content */
+    .main {
+        background-color: #0b0f14;
+    }
+
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: #080c11;
+        border-right: 1px solid #1e293b;
+    }
+
+    section[data-testid="stSidebar"] * {
+        color: #e2e8f0;
+    }
+
+    /* Headers */
+    h1, h2, h3, h4 {
+        color: #f8fafc !important;
+    }
+
+    /* Normal text */
+    p, span, label, div {
+        color: inherit;
+    }
+
+    /* Metric cards */
+    .metric-card {
+        background: #10161f;
+        padding: 18px;
+        border-radius: 12px;
+        border: 1px solid #1f2937;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+    }
+
+    /* News cards */
+    .news-card {
+        background: #10161f;
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid #1f2937;
+        margin-bottom: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.20);
+    }
+
+    .news-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #f8fafc;
+        margin-top: 6px;
+        margin-bottom: 6px;
+    }
+
+    .small-text {
+        font-size: 13px;
+        color: #94a3b8;
+    }
+
+    /* Dataframes */
+    div[data-testid="stDataFrame"] {
+        background-color: #10161f;
+        border-radius: 10px;
+    }
+
+    /* Expanders */
+    div[data-testid="stExpander"] {
+        background-color: #10161f;
+        border: 1px solid #1f2937;
+        border-radius: 10px;
+    }
+
+    /* Buttons */
+    .stButton > button,
+    .stLinkButton > a {
+        background-color: #151c26;
+        color: #f8fafc !important;
+        border: 1px solid #334155;
+        border-radius: 8px;
+    }
+
+    .stButton > button:hover,
+    .stLinkButton > a:hover {
+        background-color: #1e293b;
+        border-color: #475569;
+    }
+
+    /* Selectors */
+    div[data-baseweb="select"] > div {
+        background-color: #111827;
+        border-color: #334155;
+    }
+
+    /* Radio buttons */
+    div[role="radiogroup"] label {
+        color: #e2e8f0 !important;
+    }
+
+    /* Slider */
+    div[data-testid="stSlider"] {
+        color: #e2e8f0;
+    }
+
+    /* Alerts / info boxes */
+    div[data-testid="stAlert"] {
+        background-color: #111827;
+        border-radius: 10px;
+    }
+
+    /* Horizontal separators */
+    hr {
+        border-color: #1f2937;
+    }
+
+    /* Captions */
+    .stCaption {
+        color: #94a3b8 !important;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ============================================================
 # API ENDPOINTS
@@ -2906,6 +3042,11 @@ def create_price_chart(
 
         fig.update_layout(
             template="plotly_dark",
+            paper_bgcolor="#0b0f14",
+            plot_bgcolor="#0b0f14",
+            font=dict(
+                color="#e2e8f0"
+            ),
             height=360,
 
             title={
