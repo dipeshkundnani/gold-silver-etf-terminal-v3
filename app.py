@@ -74,6 +74,36 @@ HEADERS = {
     "User-Agent": "GoldSilverETFTerminalV3/1.0"
 }
 
+# ============================================================
+# SECURE API KEY READER
+# ============================================================
+
+def get_secret(name):
+    """
+    Priority:
+    1. Streamlit Secrets - used on Streamlit Cloud
+    2. Environment variable - useful for local deployment
+    3. .env - local development
+    """
+
+    # Streamlit Cloud Secrets
+    try:
+        value = st.secrets.get(name)
+
+        if value:
+            return str(value).strip()
+
+    except Exception:
+        pass
+
+    # Environment / .env
+    return os.getenv(name, "").strip()
+
+
+HEADERS = {
+    "User-Agent": "GoldSilverETFTerminalV3/1.0"
+}
+
 
 # ============================================================
 # MARKET SYMBOLS
@@ -373,7 +403,8 @@ def yahoo_quote(symbol):
 
 @st.cache_data(ttl=300, show_spinner=False)
 def fred_series(series_id, limit=24):
-    key = os.getenv("FRED_API_KEY", "").strip()
+
+    key = get_secret("FRED_API_KEY")
 
     if not key:
         return pd.DataFrame()
@@ -658,15 +689,13 @@ def article_id(title, url, published):
 
 @st.cache_data(ttl=600, show_spinner=False)
 def fetch_news_today():
-    news_api_key = os.getenv(
-        "NEWS_API_KEY",
-        "",
-    ).strip()
+
+    news_api_key = get_secret("NEWS_API_KEY")
 
     if not news_api_key:
         return (
             pd.DataFrame(),
-            "NEWS_API_KEY is missing from .env",
+            "NEWS_API_KEY is missing from Streamlit Secrets.",
         )
 
     rows = []
@@ -2117,7 +2146,7 @@ with c2:
 
 
 # ============================================================
-# 2. LIVE HARD NUMBERS
+# 2. LIVE MARKET DATA
 # ============================================================
 
 st.subheader(
@@ -2678,18 +2707,28 @@ else:
 # ETF charts shown first
 # ============================================================
 
-st.subheader("8 · Price charts")
+# ============================================================
+# 8. PRICE CHARTS
+# ============================================================
 
-# ------------------------------------------------------------
-# Chart period selector
-# ------------------------------------------------------------
+st.subheader("8 · 📈 Price Charts")
+
+st.caption(
+    "Maximum historical period: 6 months • "
+    "Daily closing prices"
+)
+
+
+# ============================================================
+# CHART PERIOD SELECTOR
+# ============================================================
 
 chart_period = st.radio(
     "Chart period",
     ["1M", "3M", "6M"],
     index=2,
     horizontal=True,
-    help="Maximum chart history is 6 months."
+    help="All charts are limited to a maximum of 6 months.",
 )
 
 period_map = {
@@ -2701,12 +2740,13 @@ period_map = {
 selected_period = period_map[chart_period]
 
 
-# ------------------------------------------------------------
-# Historical Yahoo data
-# ------------------------------------------------------------
+# ============================================================
+# HISTORICAL YAHOO DATA
+# ============================================================
 
 @st.cache_data(ttl=300, show_spinner=False)
 def yahoo_history(symbol, period):
+
     url = YAHOO_URL.format(symbol=symbol)
 
     response = requests.get(
@@ -2725,47 +2765,112 @@ def yahoo_history(symbol, period):
 
     payload = response.json()
 
-    result = payload.get("chart", {}).get("result")
+    result = (
+        payload
+        .get("chart", {})
+        .get("result")
+    )
 
     if not result:
-        raise ValueError(f"No historical data returned for {symbol}")
+        raise ValueError(
+            f"No historical data returned for {symbol}"
+        )
 
     result = result[0]
 
-    timestamps = result.get("timestamp", [])
-    quote_data = result.get("indicators", {}).get("quote", [{}])[0]
+    timestamps = result.get(
+        "timestamp",
+        [],
+    )
+
+    quote_data = (
+        result
+        .get("indicators", {})
+        .get("quote", [{}])[0]
+    )
 
     if not timestamps:
-        raise ValueError(f"No timestamps returned for {symbol}")
+        raise ValueError(
+            f"No timestamps returned for {symbol}"
+        )
 
     df = pd.DataFrame(quote_data)
 
+    df["Date"] = (
+        pd.to_datetime(
+            timestamps,
+            unit="s",
+            utc=True,
+        )
+        .tz_convert("Asia/Kolkata")
+        .date
+    )
+
     df["Date"] = pd.to_datetime(
-        timestamps,
-        unit="s",
-        utc=True
-    ).tz_convert("Asia/Kolkata").date
+        df["Date"]
+    )
 
-    df["Date"] = pd.to_datetime(df["Date"])
+    if "close" not in df.columns:
+        raise ValueError(
+            f"No closing price returned for {symbol}"
+        )
 
-    df = df.dropna(subset=["close"])
+    df["close"] = pd.to_numeric(
+        df["close"],
+        errors="coerce",
+    )
+
+    df = df.dropna(
+        subset=["close"]
+    )
+
+    if df.empty:
+        raise ValueError(
+            f"No valid historical prices for {symbol}"
+        )
+
+    columns = [
+        "Date",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+    ]
+
+    available_columns = [
+        column
+        for column in columns
+        if column in df.columns
+    ]
 
     df = df[
-        ["Date", "open", "high", "low", "close", "volume"]
+        available_columns
     ].copy()
 
-    df = df.sort_values("Date")
+    df = df.sort_values(
+        "Date"
+    )
 
     return df
 
 
-# ------------------------------------------------------------
-# Chart function
-# ------------------------------------------------------------
+# ============================================================
+# GENERIC CHART FUNCTION
+# ============================================================
 
-def create_price_chart(symbol, title, prefix="₹"):
+def create_price_chart(
+    symbol,
+    title,
+    prefix="₹",
+):
+
     try:
-        df = yahoo_history(symbol, selected_period)
+
+        df = yahoo_history(
+            symbol,
+            selected_period,
+        )
 
         if df.empty:
             return None
@@ -2793,80 +2898,107 @@ def create_price_chart(symbol, title, prefix="₹"):
         fig.update_layout(
             template="plotly_dark",
             height=360,
+
             title={
-                "text": f"{title} · {chart_period}",
+                "text": (
+                    f"{title} · "
+                    f"{chart_period}"
+                ),
                 "x": 0.02,
             },
+
             margin=dict(
                 l=10,
                 r=10,
                 t=50,
                 b=10,
             ),
+
             hovermode="x unified",
+
             xaxis=dict(
                 title="Date",
                 rangeslider=dict(
                     visible=False
                 ),
             ),
+
             yaxis=dict(
                 title="Price",
                 tickformat=",.2f",
             ),
+
             showlegend=False,
         )
 
         return fig
 
     except Exception as exc:
-        st.warning(f"{title}: chart unavailable — {exc}")
+
+        st.warning(
+            f"{title}: chart unavailable — {exc}"
+        )
+
         return None
 
 
 # ============================================================
-# 8.1 INDIAN GOLD & SILVER ETF
+# 8.1 INDIAN GOLD & SILVER ETFs
 # ============================================================
 
-st.markdown("### 🇮🇳 Indian Gold & Silver ETFs")
+st.markdown(
+    "### 🇮🇳 Indian Gold & Silver ETFs"
+)
+
+st.caption(
+    "Indian ETF charts are shown first because "
+    "these are the primary instruments tracked by the terminal."
+)
 
 etf_col1, etf_col2 = st.columns(2)
 
-# ------------------------------------------------------------
-# Gold ETF FIRST
-# ------------------------------------------------------------
+
+# ============================================================
+# GOLD ETF — FIRST
+# ============================================================
 
 with etf_col1:
+
+    st.markdown("#### 🥇 GOLDBEES")
 
     gold_etf_fig = create_price_chart(
         "GOLDBEES.NS",
         "GOLDBEES",
-        "₹"
+        "₹",
     )
 
     if gold_etf_fig is not None:
+
         st.plotly_chart(
             gold_etf_fig,
-            use_container_width=True
+            use_container_width=True,
         )
 
 
-# ------------------------------------------------------------
-# Silver ETF SECOND
-# ------------------------------------------------------------
+# ============================================================
+# SILVER ETF — SECOND
+# ============================================================
 
 with etf_col2:
+
+    st.markdown("#### 🥈 SILVERBEES")
 
     silver_etf_fig = create_price_chart(
         "SILVERBEES.NS",
         "SILVERBEES",
-        "₹"
+        "₹",
     )
 
     if silver_etf_fig is not None:
+
         st.plotly_chart(
             silver_etf_fig,
-            use_container_width=True
+            use_container_width=True,
         )
 
 
@@ -2874,51 +3006,63 @@ with etf_col2:
 # 8.2 INTERNATIONAL GOLD & SILVER
 # ============================================================
 
-st.markdown("### 🌎 International Gold & Silver")
+st.markdown(
+    "### 🌎 International Gold & Silver"
+)
 
-international_col1, international_col2 = st.columns(2)
+international_col1, international_col2 = (
+    st.columns(2)
+)
 
-# ------------------------------------------------------------
-# International Gold
-# ------------------------------------------------------------
+
+# ============================================================
+# INTERNATIONAL GOLD
+# ============================================================
 
 with international_col1:
+
+    st.markdown("#### 🥇 Gold XAU/USD")
 
     gold_fig = create_price_chart(
         "GC=F",
         "Gold XAU/USD",
-        "$"
+        "$",
     )
 
     if gold_fig is not None:
+
         st.plotly_chart(
             gold_fig,
-            use_container_width=True
+            use_container_width=True,
         )
 
 
-# ------------------------------------------------------------
-# International Silver
-# ------------------------------------------------------------
+# ============================================================
+# INTERNATIONAL SILVER
+# ============================================================
 
 with international_col2:
+
+    st.markdown("#### 🥈 Silver XAG/USD")
 
     silver_fig = create_price_chart(
         "SI=F",
         "Silver XAG/USD",
-        "$"
+        "$",
     )
 
     if silver_fig is not None:
+
         st.plotly_chart(
             silver_fig,
-            use_container_width=True
+            use_container_width=True,
         )
 
 
 st.caption(
-    f"Chart range: {chart_period} maximum • "
-    "Daily closing prices • Yahoo Finance historical market data"
+    f"Selected chart period: {chart_period} • "
+    "Maximum available period: 6 months • "
+    "Daily closing prices • Yahoo Finance"
 )
 
 # ============================================================
@@ -3025,14 +3169,19 @@ news_status = (
 
 fred_status = (
     "🟢 Configured"
-    if os.getenv(
-        "FRED_API_KEY",
-        "",
-    ).strip()
-    else
-    "🟡 Key missing"
+    if get_secret("FRED_API_KEY")
+    else "🟡 Key missing"
 )
 
+news_api_status = (
+    "🟢 Configured"
+    if get_secret("NEWS_API_KEY")
+    else "🟡 Key missing"
+)
+
+news_api_configured = bool(
+    get_secret("NEWS_API_KEY")
+)
 
 api_rows = [
     [
@@ -3062,10 +3211,12 @@ api_rows = [
         "Direct feed with FRED fallback",
     ],
     [
-        "NewsAPI",
-        "Today's trusted public news",
-        news_status,
-        "Whitelist + India-date filter",
+    "NewsAPI",
+    "Today's trusted public news",
+    "🟢 Configured"
+    if news_api_configured
+    else "🟡 Key missing",
+    "Whitelist + India-date filter",
     ],
 ]
 
