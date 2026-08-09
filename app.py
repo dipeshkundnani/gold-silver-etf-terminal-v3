@@ -1892,67 +1892,71 @@ def make_snapshot(
 # SAVE TODAY
 # ============================================================
 
-def persist_today(
+def storage_saved = persist_today(
     quotes,
     gold_score,
     silver_score,
-    gold_delta,
-    silver_delta,
+    gold_news_delta,
+    silver_news_delta,
     events,
     articles,
 ):
 
-    payload = load_day(
-        TODAY_STR
-    )
+    try:
+        payload = load_day(TODAY_STR)
 
-    payload["snapshot"] = make_snapshot(
-        quotes,
-        gold_score,
-        silver_score,
-        gold_delta,
-        silver_delta,
-        events,
-    )
-
-    payload["articles"] = articles
-
-    payload["events"] = []
-
-    for event in events:
-
-        payload["events"].append(
-            {
-                key: event.get(key)
-                for key in [
-                    "id",
-                    "PublishedUTC",
-                    "PublishedIST",
-                    "Source",
-                    "Headline",
-                    "Description",
-                    "URL",
-                    "Sources",
-                    "SourceCount",
-                    "gold_impact",
-                    "silver_impact",
-                    "topics",
-                    "reported",
-                    "reasons",
-                    "confidence",
-                ]
-            }
+        payload["snapshot"] = make_snapshot(
+            quotes,
+            gold_score,
+            silver_score,
+            gold_delta,
+            silver_delta,
+            events,
         )
 
-    try:
-    save_day(
-        TODAY_STR,
-        payload,
-    )
+        payload["articles"] = articles
+
+        payload["events"] = []
+
+        for event in events:
+            payload["events"].append(
+                {
+                    key: event.get(key)
+                    for key in [
+                        "id",
+                        "PublishedUTC",
+                        "PublishedIST",
+                        "Source",
+                        "Headline",
+                        "Description",
+                        "URL",
+                        "Sources",
+                        "SourceCount",
+                        "gold_impact",
+                        "silver_impact",
+                        "topics",
+                        "reported",
+                        "reasons",
+                        "confidence",
+                    ]
+                }
+            )
+
+        save_day(
+            TODAY_STR,
+            payload,
+        )
+
+        return True
+
+    except (OSError, FileNotFoundError, PermissionError) as exc:
+        # Local JSON storage is optional on Streamlit Cloud.
+        # Do not crash the application if the filesystem is unavailable.
+        return False
+
     except Exception as exc:
-    st.warning(
-        f"Daily history storage unavailable: {exc}"
-    )
+        # Prevent a storage problem from stopping the dashboard.
+        return False
 
 
 # ============================================================
@@ -3439,24 +3443,18 @@ st.subheader(
 # Do not use Path.relative_to() here because the
 # resolved paths may not share the same parent.
 
-today_file = day_file(TODAY_STR)
-
 st.write(
-    f"Today's file: `{today_file}`"
+    f"Today's storage: "
+    f"{'🟢 Saved locally' if storage_saved else '🟡 Local storage unavailable'}"
 )
 
 if yday:
-
-    yesterday = (
-        TODAY - timedelta(days=1)
-    )
-
-    yesterday_file = day_file(
-        yesterday.isoformat()
-    )
-
     st.write(
-        f"Yesterday's file: `{yesterday_file}`"
+        "Yesterday's snapshot: 🟢 Available"
+    )
+else:
+    st.write(
+        "Yesterday's snapshot: 🟡 Not available"
     )
 
 st.caption(
