@@ -40,8 +40,11 @@ DATA_DIR = Path("/tmp/gold_silver_etf_data")
 HISTORY_DIR = DATA_DIR / "history"
 STATE_FILE = DATA_DIR / "state.json"
 
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 
 # Local development .env
 ENV_FILE = BASE_DIR / ".env"
@@ -3439,31 +3442,33 @@ st.subheader(
     "11 · 💾 Local daily history"
 )
 
-# Streamlit Cloud uses an ephemeral filesystem.
-# Do not use Path.relative_to() here because the
-# resolved paths may not share the same parent.
-
 st.write(
-    f"Today's storage: "
-    f"{'🟢 Saved locally' if storage_saved else '🟡 Local storage unavailable'}"
+    f"Today's file: `{day_file(TODAY_STR).name}`"
 )
 
 if yday:
+    yesterday = TODAY - timedelta(days=1)
+
     st.write(
-        "Yesterday's snapshot: 🟢 Available"
+        f"Yesterday's file: "
+        f"`{day_file(yesterday.isoformat()).name}`"
+    )
+
+if storage_saved:
+    st.success(
+        "Local snapshot saved for this session."
     )
 else:
-    st.write(
-        "Yesterday's snapshot: 🟡 Not available"
+    st.info(
+        "Local history storage is unavailable on "
+        "the deployed Streamlit environment. "
+        "Live market data, news and charts continue normally."
     )
 
 st.caption(
-    "Daily snapshots, articles and events "
-    "are stored locally as JSON. "
-    "Streamlit Cloud storage is temporary and "
-    "may reset when the app is redeployed or restarted."
+    "Streamlit Cloud uses an ephemeral filesystem. "
+    "Local JSON files should not be treated as permanent storage."
 )
-
 # ============================================================
 # WARNINGS
 # ============================================================
