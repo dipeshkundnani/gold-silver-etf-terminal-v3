@@ -331,7 +331,7 @@ def safe_float(value):
 # YAHOO MARKET DATA
 # ============================================================
 
-@st.cache_data(ttl=20, show_spinner=False)
+@st.cache_data(ttl=120, show_spinner=False)
 def yahoo_quote(symbol):
     response = requests.get(
         YAHOO_URL.format(symbol=symbol),
@@ -2753,7 +2753,7 @@ selected_period = period_map[chart_period]
 # HISTORICAL YAHOO DATA
 # ============================================================
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def yahoo_history(symbol, period):
 
     url = YAHOO_URL.format(symbol=symbol)
