@@ -3252,50 +3252,44 @@ st.dataframe(
 # 11. LOCAL HISTORY
 # ============================================================
 
+# ============================================================
+# 11. LOCAL HISTORY
+# ============================================================
+
 st.subheader(
     "11 · 💾 Local daily history"
 )
 
+# Streamlit Cloud uses an ephemeral filesystem.
+# Do not use Path.relative_to() here because the
+# resolved paths may not share the same parent.
 
-today_relative = day_file(
-    TODAY_STR
-).relative_to(
-    BASE_DIR
-)
-
+today_file = day_file(TODAY_STR)
 
 st.write(
-    f"Today's file: `{today_relative}`"
+    f"Today's file: `{today_file}`"
 )
-
 
 if yday:
 
     yesterday = (
-        TODAY
-        - timedelta(days=1)
+        TODAY - timedelta(days=1)
     )
 
-    yesterday_relative = (
-        day_file(
-            yesterday.isoformat()
-        ).relative_to(
-            BASE_DIR
-        )
+    yesterday_file = day_file(
+        yesterday.isoformat()
     )
 
     st.write(
-        f"Yesterday's file: "
-        f"`{yesterday_relative}`"
+        f"Yesterday's file: `{yesterday_file}`"
     )
-
 
 st.caption(
     "Daily snapshots, articles and events "
     "are stored locally as JSON. "
-    "No external database is used."
+    "Streamlit Cloud storage is temporary and "
+    "may reset when the app is redeployed or restarted."
 )
-
 
 # ============================================================
 # WARNINGS
