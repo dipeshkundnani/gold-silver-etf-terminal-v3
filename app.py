@@ -1948,7 +1948,7 @@ storage_saved = persist_today(
             TODAY_STR,
             payload,
         )
-
+)
         return True
 
     except (OSError, FileNotFoundError, PermissionError) as exc:
