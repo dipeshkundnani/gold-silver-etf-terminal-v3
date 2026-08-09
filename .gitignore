@@ -1,5 +1,13 @@
 .env
+.env.*
+!.env.example
+
 __pycache__/
 *.pyc
-.streamlit/
-data/history/*.json
+
+.streamlit/secrets.toml
+
+data/state.json
+data/history/
+
+.DS_Store
