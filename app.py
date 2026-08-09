@@ -1903,7 +1903,6 @@ storage_saved = persist_today(
     silver_news_delta,
     events,
     articles,
-):
 
     try:
         payload = load_day(TODAY_STR)
