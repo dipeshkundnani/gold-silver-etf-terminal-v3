@@ -35,15 +35,24 @@ from streamlit_autorefresh import st_autorefresh
 
 BASE_DIR = Path(__file__).resolve().parent
 
-DATA_DIR = BASE_DIR / "data"
+# Streamlit Cloud writable temporary storage
+DATA_DIR = Path("/tmp/gold_silver_etf_data")
 HISTORY_DIR = DATA_DIR / "history"
 STATE_FILE = DATA_DIR / "state.json"
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 HISTORY_DIR.mkdir(parents=True, exist_ok=True)
 
+# Local development .env
 ENV_FILE = BASE_DIR / ".env"
 load_dotenv(ENV_FILE)
+
+# Streamlit Cloud Secrets
+if "FRED_API_KEY" in st.secrets:
+    os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
+
+if "NEWS_API_KEY" in st.secrets:
+    os.environ["NEWS_API_KEY"] = st.secrets["NEWS_API_KEY"]
 
 
 # ============================================================
