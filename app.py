@@ -397,18 +397,46 @@ def load_json(path, default):
 
 
 def save_json(path, data):
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    """
+    Safely save JSON data.
 
-    with tmp.open("w", encoding="utf-8") as f:
-        json.dump(
-            data,
-            f,
-            indent=2,
-            ensure_ascii=False,
-            default=str,
+    Streamlit Cloud has an ephemeral filesystem.
+    Failure to save local history should never crash
+    the main dashboard.
+    """
+
+    try:
+        path = Path(path)
+
+        # Make sure parent directory exists
+        path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
         )
 
-    tmp.replace(path)
+        with path.open(
+            "w",
+            encoding="utf-8",
+        ) as f:
+
+            json.dump(
+                data,
+                f,
+                indent=2,
+                ensure_ascii=False,
+                default=str,
+            )
+
+        return True
+
+    except Exception as exc:
+
+        # Do not crash the dashboard
+        st.warning(
+            f"Local history could not be saved: {exc}"
+        )
+
+        return False
 
 
 def day_file(day):
@@ -1916,9 +1944,14 @@ def persist_today(
             }
         )
 
+    try:
     save_day(
         TODAY_STR,
         payload,
+    )
+    except Exception as exc:
+    st.warning(
+        f"Daily history storage unavailable: {exc}"
     )
 
 
@@ -1984,10 +2017,11 @@ st.title(
 )
 
 st.caption(
-    "News-driven daily terminal • Live Market Data • "
-    "trusted public news • local JSON history"
+    "Daily snapshots, articles and events "
+    "are stored as local JSON when the "
+    "Streamlit filesystem is available. "
+    "Cloud storage is temporary."
 )
-
 
 # ============================================================
 # SIDEBAR
