@@ -50,14 +50,6 @@ except Exception:
 ENV_FILE = BASE_DIR / ".env"
 load_dotenv(ENV_FILE)
 
-# Streamlit Cloud Secrets
-if "FRED_API_KEY" in st.secrets:
-    os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
-
-if "NEWS_API_KEY" in st.secrets:
-    os.environ["NEWS_API_KEY"] = st.secrets["NEWS_API_KEY"]
-
-
 # ============================================================
 # STREAMLIT CONFIG
 # ============================================================
@@ -1895,15 +1887,20 @@ def make_snapshot(
 # SAVE TODAY
 # ============================================================
 
-storage_saved = persist_today(
+def persist_today(
     quotes,
     gold_score,
     silver_score,
-    gold_news_delta,
-    silver_news_delta,
+    gold_delta,
+    silver_delta,
     events,
     articles,
+):
+    """Save today's snapshot when the runtime filesystem allows it.
 
+    Streamlit Cloud storage is ephemeral, so a storage failure must
+    never stop the dashboard.
+    """
     try:
         payload = load_day(TODAY_STR)
 
@@ -1917,7 +1914,6 @@ storage_saved = persist_today(
         )
 
         payload["articles"] = articles
-
         payload["events"] = []
 
         for event in events:
@@ -1944,36 +1940,19 @@ storage_saved = persist_today(
                 }
             )
 
-        save_day(
-            TODAY_STR,
-            payload,
-        )
+        return bool(save_day(TODAY_STR, payload))
 
-        return True
-
-    except (OSError, FileNotFoundError, PermissionError) as exc:
-        # Local JSON storage is optional on Streamlit Cloud.
-        # Do not crash the application if the filesystem is unavailable.
+    except Exception:
         return False
 
-    except Exception as exc:
-        # Prevent a storage problem from stopping the dashboard.
-        return False
 
-)
 # ============================================================
 # YESTERDAY
 # ============================================================
 
 def yesterday_snapshot():
-
-    yesterday = (
-        TODAY - timedelta(days=1)
-    )
-
-    return load_day(
-        yesterday.isoformat()
-    ).get("snapshot")
+    yesterday = TODAY - timedelta(days=1)
+    return load_day(yesterday.isoformat()).get("snapshot")
 
 
 # ============================================================
@@ -2134,7 +2113,7 @@ silver_score, silver_news_delta = final_score(
 # SAVE
 # ============================================================
 
-persist_today(
+storage_saved = persist_today(
     quotes,
     gold_score,
     silver_score,
@@ -2932,23 +2911,43 @@ selected_period = period_map[chart_period]
 @st.cache_data(ttl=3600, show_spinner=False)
 def yahoo_history(symbol, period):
 
-    url = YAHOO_URL.format(symbol=symbol)
+    params = {
+        "range": period,
+        "interval": "1d",
+        "includePrePost": "false",
+        "events": "history",
+    }
 
-    response = requests.get(
-        url,
-        params={
-            "range": period,
-            "interval": "1d",
-            "includePrePost": "false",
-            "events": "history",
-        },
-        timeout=15,
-        headers=HEADERS,
-    )
+    last_error = None
 
-    response.raise_for_status()
+    for base_url in [
+        "https://query2.finance.yahoo.com/v8/finance/chart/{symbol}",
+        YAHOO_URL,
+    ]:
+        try:
+            response = requests.get(
+                base_url.format(symbol=symbol),
+                params=params,
+                timeout=15,
+                headers={
+                    **HEADERS,
+                    "Accept": "application/json,text/plain,*/*",
+                    "Accept-Language": "en-US,en;q=0.9",
+                },
+            )
 
-    payload = response.json()
+            response.raise_for_status()
+            payload = response.json()
+            break
+
+        except Exception as exc:
+            last_error = exc
+            payload = None
+
+    if payload is None:
+        raise ValueError(
+            f"Historical data temporarily unavailable for {symbol}"
+        )
 
     result = (
         payload
@@ -3082,8 +3081,8 @@ def create_price_chart(
 
         fig.update_layout(
             template="plotly_dark",
-            paper_bgcolor="#1f2223",
-            plot_bgcolor="#1f2223",
+            paper_bgcolor="#0b0f14",
+            plot_bgcolor="#0b0f14",
             font=dict(
                 color="#e2e8f0"
             ),
